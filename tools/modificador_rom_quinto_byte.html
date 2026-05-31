@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modificar ROM WonderSwan - Quinto byte desde el final</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #222;
+      margin: 0;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffe69c;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .info {
+      background: #e7f1ff;
+      border: 1px solid #b6d4fe;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 16px;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin: 16px 0;
+    }
+
+    button {
+      background: #0d6efd;
+      color: #fff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    code {
+      background: #eee;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Modificar ROM WonderSwan</h1>
+
+    <div class="warning">
+      Este archivo HTML modifica una copia de la ROM en tu navegador. No sube el archivo a internet.
+      Siempre conserva una copia original sin modificar.
+    </div>
+
+    <p>
+      La herramienta cambia el <strong>quinto byte contando desde el final del archivo</strong> al valor <code>0x00</code>.
+    </p>
+
+    <input type="file" id="romFile" accept=".ws,.wsc,.bin,.rom,*/*" />
+
+    <button id="modifyBtn" disabled>Modificar y descargar ROM</button>
+
+    <div id="output" class="info" style="display:none"></div>
+
+    <p class="small">
+      Después de descargar la ROM modificada, pruébala primero en un emulador antes de grabarla en una memoria flash.
+    </p>
+  </div>
+
+  <script>
+    const romFileInput = document.getElementById('romFile');
+    const modifyBtn = document.getElementById('modifyBtn');
+    const output = document.getElementById('output');
+
+    let selectedFile = null;
+
+    romFileInput.addEventListener('change', () => {
+      selectedFile = romFileInput.files[0] || null;
+      modifyBtn.disabled = !selectedFile;
+      output.style.display = 'none';
+      output.textContent = '';
+    });
+
+    modifyBtn.addEventListener('click', async () => {
+      if (!selectedFile) {
+        alert('Selecciona primero una ROM.');
+        return;
+      }
+
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+
+      if (data.length < 5) {
+        alert('El archivo es demasiado pequeño para modificar el quinto byte desde el final.');
+        return;
+      }
+
+      const targetIndex = data.length - 5;
+      const oldValue = data[targetIndex];
+
+      data[targetIndex] = 0x00;
+
+      const originalName = selectedFile.name;
+      const dotIndex = originalName.lastIndexOf('.');
+      let newName;
+
+      if (dotIndex > 0) {
+        const base = originalName.substring(0, dotIndex);
+        const ext = originalName.substring(dotIndex);
+        newName = base + '_byte5_final_00' + ext;
+      } else {
+        newName = originalName + '_byte5_final_00';
+      }
+
+      const blob = new Blob([data], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = newName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+
+      output.style.display = 'block';
+      output.textContent =
+        'Archivo original: ' + originalName + '\n' +
+        'Tamaño: ' + data.length + ' bytes\n' +
+        'Offset modificado: 0x' + targetIndex.toString(16).toUpperCase().padStart(8, '0') + '\n' +
+        'Valor anterior: 0x' + oldValue.toString(16).toUpperCase().padStart(2, '0') + '\n' +
+        'Valor nuevo: 0x00\n' +
+        'Archivo generado: ' + newName;
+    });
+  </script>
+</body>
+</html>

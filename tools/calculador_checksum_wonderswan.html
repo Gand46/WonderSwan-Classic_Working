@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculador y escritor de checksum WonderSwan</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #222;
+      margin: 0;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffe69c;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .ok {
+      background: #d1e7dd;
+      border: 1px solid #badbcc;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .bad {
+      background: #f8d7da;
+      border: 1px solid #f5c2c7;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .info {
+      background: #e7f1ff;
+      border: 1px solid #b6d4fe;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 16px;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+      overflow-x: auto;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin: 16px 0;
+    }
+
+    button {
+      background: #0d6efd;
+      color: #fff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+
+    button.secondary {
+      background: #198754;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    code {
+      background: #eee;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #555;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f1f1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculador y escritor de checksum WonderSwan</h1>
+
+    <div class="warning">
+      Esta herramienta trabaja localmente en tu navegador. No sube la ROM a internet.
+      Siempre conserva una copia original sin modificar.
+    </div>
+
+    <p>
+      El checksum de WonderSwan se calcula sumando todos los bytes de la ROM excepto los últimos 2 bytes.
+      Luego se conserva solo el resultado de 16 bits y se escribe al final en formato <strong>little endian</strong>.
+    </p>
+
+    <p>
+      Fórmula usada:
+    </p>
+
+    <div class="info">checksum = sum(data[0] ... data[length - 3]) &amp; 0xFFFF
+
+Últimos 2 bytes:
+data[length - 2] = checksum &amp; 0xFF
+data[length - 1] = checksum &gt;&gt; 8</div>
+
+    <h2>1. Seleccionar ROM</h2>
+    <input type="file" id="romFile" accept=".ws,.wsc,.bin,.rom,*/*" />
+
+    <button id="analyzeBtn" disabled>Calcular checksum</button>
+    <button id="writeBtn" class="secondary" disabled>Escribir checksum y descargar ROM</button>
+
+    <div id="status"></div>
+    <div id="output" class="info" style="display:none"></div>
+
+    <h2>Notas</h2>
+    <p class="small">
+      Si antes modificaste el quinto byte desde el final a <code>0x00</code>, esta herramienta recalcula el checksum correcto y lo escribe en los últimos 2 bytes.
+      Después de descargar la ROM corregida, pruébala primero en un emulador antes de grabarla en una memoria flash.
+    </p>
+  </div>
+
+  <script>
+    const romFileInput = document.getElementById('romFile');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const writeBtn = document.getElementById('writeBtn');
+    const output = document.getElementById('output');
+    const statusBox = document.getElementById('status');
+
+    let selectedFile = null;
+    let originalData = null;
+    let calculatedChecksum = null;
+    let storedChecksum = null;
+
+    function hex2(value) {
+      return '0x' + value.toString(16).toUpperCase().padStart(2, '0');
+    }
+
+    function hex4(value) {
+      return '0x' + value.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    function hex8(value) {
+      return '0x' + value.toString(16).toUpperCase().padStart(8, '0');
+    }
+
+    function calculateWonderSwanChecksum(data) {
+      let sum = 0;
+
+      // Se excluyen los últimos 2 bytes, donde se guarda el checksum.
+      for (let i = 0; i < data.length - 2; i++) {
+        sum = (sum + data[i]) & 0xFFFF;
+      }
+
+      return sum;
+    }
+
+    function getStoredChecksum(data) {
+      // Little endian: byte bajo primero, byte alto después.
+      return data[data.length - 2] | (data[data.length - 1] << 8);
+    }
+
+    function showResults() {
+      const checksumLow = calculatedChecksum & 0xFF;
+      const checksumHigh = (calculatedChecksum >> 8) & 0xFF;
+      const isCorrect = calculatedChecksum === storedChecksum;
+
+      statusBox.className = isCorrect ? 'ok' : 'bad';
+      statusBox.textContent = isCorrect
+        ? 'Checksum correcto: el checksum calculado coincide con el guardado en la ROM.'
+        : 'Checksum diferente: el checksum guardado no coincide con el checksum calculado.';
+
+      output.style.display = 'block';
+      output.textContent =
+        'Archivo: ' + selectedFile.name + '\n' +
+        'Tamaño: ' + originalData.length + ' bytes\n\n' +
+        'Checksum guardado en ROM:   ' + hex4(storedChecksum) + '\n' +
+        'Checksum calculado nuevo:   ' + hex4(calculatedChecksum) + '\n\n' +
+        'Offset checksum byte bajo:  ' + hex8(originalData.length - 2) + '\n' +
+        'Offset checksum byte alto:  ' + hex8(originalData.length - 1) + '\n\n' +
+        'Se escribirá al final como little endian:\n' +
+        'Byte bajo: ' + hex2(checksumLow) + '\n' +
+        'Byte alto: ' + hex2(checksumHigh) + '\n\n' +
+        'Últimos 2 bytes nuevos: ' + hex2(checksumLow) + ' ' + hex2(checksumHigh);
+    }
+
+    romFileInput.addEventListener('change', () => {
+      selectedFile = romFileInput.files[0] || null;
+      originalData = null;
+      calculatedChecksum = null;
+      storedChecksum = null;
+
+      analyzeBtn.disabled = !selectedFile;
+      writeBtn.disabled = true;
+      statusBox.className = '';
+      statusBox.textContent = '';
+      output.style.display = 'none';
+      output.textContent = '';
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) {
+        alert('Selecciona primero una ROM.');
+        return;
+      }
+
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      originalData = new Uint8Array(arrayBuffer);
+
+      if (originalData.length < 2) {
+        alert('El archivo es demasiado pequeño para calcular checksum.');
+        return;
+      }
+
+      calculatedChecksum = calculateWonderSwanChecksum(originalData);
+      storedChecksum = getStoredChecksum(originalData);
+
+      showResults();
+      writeBtn.disabled = false;
+    });
+
+    writeBtn.addEventListener('click', () => {
+      if (!originalData || calculatedChecksum === null) {
+        alert('Primero calcula el checksum.');
+        return;
+      }
+
+      const data = new Uint8Array(originalData);
+
+      // Escribir checksum en little endian.
+      data[data.length - 2] = calculatedChecksum & 0xFF;
+      data[data.length - 1] = (calculatedChecksum >> 8) & 0xFF;
+
+      const originalName = selectedFile.name;
+      const dotIndex = originalName.lastIndexOf('.');
+      let newName;
+
+      if (dotIndex > 0) {
+        const base = originalName.substring(0, dotIndex);
+        const ext = originalName.substring(dotIndex);
+        newName = base + '_checksum_ok' + ext;
+      } else {
+        newName = originalName + '_checksum_ok';
+      }
+
+      const blob = new Blob([data], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = newName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+
+      output.textContent += '\n\nArchivo generado: ' + newName;
+    });
+  </script>
+</body>
+</html>

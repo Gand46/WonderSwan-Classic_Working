@@ -25,7 +25,15 @@ Cartridge supported :
 Compatible & Tested Memory :
 -----
     Macronix MX29L3211 
-      
+
+PCB build
+-----
+EPM240T100C5 and MX29L3211 Orientation:
+
+
+
+All the caps are 100nf SMD 0603 x 11
+
 Flash the EPM240T100C5
 -----
 To write the firmware to the CPLD, you can use a Pi Pico (https://github.com/thisiseth/pico-usb-blaster) along with the Quartus Programmer available on Intel's website Quartus Prime Programmer and Tools "(QuartusProgrammerSetup-25.1std.0.1129-windows.exe)" plug the pins to the pcb (JTAG MODE):
@@ -53,7 +61,7 @@ NOTE. *if you solder it well to the pcb it will be recogniced on quartus*
 9. Wait for 100% Successful.
 If JTAG fails, check power, drivers, cable orientation, pin mapping, and solder joints.(free advice the solder joints are the trick)
 
-How to use it :
+How to select and patch the rom:
 -----
 -Check if your game is compatible ( see compatibility list and filter by NO to SRAM as Extra RAM ). 
 
@@ -73,7 +81,7 @@ How to use it :
 
 -Flash your SOP44 memory with the file. To do this, you can use MegaBurner by maximaas (https://github.com/maximaas/MegaBurner). I have a compiled version available at (https://github.com/Gand46/MegaBurner_Compiled) with everything you need to get started. 
 
-	Note that the Xgecu T48 is NOT compatible (only the T56 is supported), 
+	Note that the Xgecu T48 is NOT compatible with MX29L3211 (only on the T56 is supported)
 	which is why building or using this MegaBurner version is much easier.
 -Solder the flash.
 

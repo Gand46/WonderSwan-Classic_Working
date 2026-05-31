@@ -40,11 +40,11 @@ How to use it :
 
 (also add a htlm app to make this mod in tool folder) 
 
--Test ROM on a emulator if work contunye
+-Test ROM on a emulator if work continue to the next step
 
 -Pad it to 32Mb with the tools if needed. 
 
--Flash your SOP44 memory with the file. to flash it use megaburner by maximaas (https://github.com/maximaas/MegaBurner) i have a version compiled on (https://github.com/Gand46/MegaBurner_Compiled) with all to work
+-Flash your SOP44 memory with the file. to flash you can use megaburner by maximaas (https://github.com/maximaas/MegaBurner) i have a version compiled on (https://github.com/Gand46/MegaBurner_Compiled) with all to work (Xgecu T48 are NOT compatible only the T56) because of that is more easy to build the megaburner
 
 -Solder the flash. 
 -----

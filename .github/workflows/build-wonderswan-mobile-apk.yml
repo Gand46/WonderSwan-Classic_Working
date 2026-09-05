@@ -14,13 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Unpack Android project
+      - name: Reconstruct Android source archive
         run: |
-          rm -rf android-mobile-wrapper
-          mkdir android-mobile-wrapper
-          unzip -q WonderSwan_Mobile_Android_v1.4.0_Source.zip -d android-mobile-wrapper
-          mv android-mobile-wrapper/WonderSwan_Mobile_Android_v1.4.0/* android-mobile-wrapper/
-          rm -rf android-mobile-wrapper/WonderSwan_Mobile_Android_v1.4.0
+          cat apk-source-parts/part00.b64 apk-source-parts/part01.b64 apk-source-parts/part02.b64 apk-source-parts/part03.b64 apk-source-parts/part04.b64 | base64 -d > source.zip
+          echo "d9dcfe06d58070979758a662ba388c719ab83217c09ef121a4ea55d643409ab2  source.zip" | sha256sum -c -
+          unzip -t source.zip
+          rm -rf android-build
+          mkdir android-build
+          unzip -q source.zip -d android-build
+          cp -a android-build/WonderSwan_Mobile_Android_v1.4.0/. android-build-root
+          rm -rf android-build
+          mv android-build-root android-build
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -42,12 +46,14 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build debug APK
-        working-directory: android-mobile-wrapper
+        working-directory: android-build
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Prepare artifact
+      - name: Validate and prepare artifact
         run: |
-          cp android-mobile-wrapper/app/build/outputs/apk/debug/app-debug.apk WonderSwan_Mobile_Pro_v1.4.0_Android.apk
+          test -s android-build/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android-build/app/build/outputs/apk/debug/app-debug.apk
+          cp android-build/app/build/outputs/apk/debug/app-debug.apk WonderSwan_Mobile_Pro_v1.4.0_Android.apk
           sha256sum WonderSwan_Mobile_Pro_v1.4.0_Android.apk > WonderSwan_Mobile_Pro_v1.4.0_Android.apk.sha256
 
       - name: Upload APK

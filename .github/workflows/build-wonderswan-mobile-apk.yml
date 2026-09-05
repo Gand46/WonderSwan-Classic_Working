@@ -24,6 +24,8 @@ jobs:
           unzip -q WonderSwan_Mobile_Android_v1.4.0_Source.fixed.zip -d android-mobile-wrapper
           mv android-mobile-wrapper/WonderSwan_Mobile_Android_v1.4.0/* android-mobile-wrapper/
           rm -rf android-mobile-wrapper/WonderSwan_Mobile_Android_v1.4.0
+          sed -i 's/File dir = getExternalFilesDir(null);/File dir = MainActivity.this.getExternalFilesDir(null);/' android-mobile-wrapper/app/src/main/java/com/gand46/wonderswanmobile/MainActivity.java
+          grep -n 'getExternalFilesDir' android-mobile-wrapper/app/src/main/java/com/gand46/wonderswanmobile/MainActivity.java
 
       - name: Set up Java 17
         uses: actions/setup-java@v4

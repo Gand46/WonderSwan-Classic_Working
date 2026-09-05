@@ -32,6 +32,8 @@ jobs:
           s=s.replace('WebSettings.AlgorithmicDarkeningAllowed(false);','')
           s=s.replace('settings.setAlgorithmicDarkeningAllowed(false);','')
           s=s.replace('File dir = getExternalFilesDir(null);','File dir = MainActivity.this.getExternalFilesDir(null);')
+          s=s.replace('WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);','WebView.setWebContentsDebuggingEnabled(false);')
+          s=s.replace('return BuildConfig.VERSION_NAME;','return "1.4.0-android1";')
           p.write_text(s)
           print('Normalized MainActivity.java')
           PY

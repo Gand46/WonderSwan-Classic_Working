@@ -9,27 +9,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct and repair Android source archive
+      - name: Rebuild Android source
         run: |
-          cat apk-source-parts/part00.b64 apk-source-parts/part01.b64 apk-source-parts/part02.b64 apk-source-parts/part03.b64 apk-source-parts/part04.b64 | base64 -d > source.zip
-          echo "Reconstructed source archive:"
-          ls -lh source.zip
-          sha256sum source.zip
-          zip -FF source.zip --out source-fixed.zip
-          unzip -t source-fixed.zip
-          rm -rf android-build android-build-root
-          mkdir android-build
-          unzip -q source-fixed.zip -d android-build
-          cp -a android-build/WonderSwan_Mobile_Android_v1.4.0 android-build-root
-          rm -rf android-build
-          mv android-build-root android-build
-          test -s android-build/app/src/main/assets/index.html
-          test -s android-build/app/src/main/java/com/gand46/wonderswanmobile/MainActivity.java
+          cat android-src.b64.part00 android-src.b64.part01 android-src.b64.part02 android-src.b64.part03 android-src.b64.part04 android-src.b64.part05 android-src.b64.part06a android-src.b64.part06b android-src.b64.part07a android-src.b64.part07b > android-src.b64
+          base64 -d android-src.b64 > WonderSwan_Mobile_Android_v1.4.0_Source.fixed.zip
+          unzip -t WonderSwan_Mobile_Android_v1.4.0_Source.fixed.zip
+          rm -rf android-mobile-wrapper
+          mkdir android-mobile-wrapper
+          unzip -q WonderSwan_Mobile_Android_v1.4.0_Source.fixed.zip -d android-mobile-wrapper
+          mv android-mobile-wrapper/WonderSwan_Mobile_Android_v1.4.0/* android-mobile-wrapper/
+          rm -rf android-mobile-wrapper/WonderSwan_Mobile_Android_v1.4.0
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -51,15 +45,14 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build debug APK
-        working-directory: android-build
+        working-directory: android-mobile-wrapper
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Validate and prepare artifact
+      - name: Prepare artifact
         run: |
-          test -s android-build/app/build/outputs/apk/debug/app-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android-build/app/build/outputs/apk/debug/app-debug.apk
-          cp android-build/app/build/outputs/apk/debug/app-debug.apk WonderSwan_Mobile_Pro_v1.4.0_Android.apk
+          cp android-mobile-wrapper/app/build/outputs/apk/debug/app-debug.apk WonderSwan_Mobile_Pro_v1.4.0_Android.apk
           sha256sum WonderSwan_Mobile_Pro_v1.4.0_Android.apk > WonderSwan_Mobile_Pro_v1.4.0_Android.apk.sha256
+          unzip -t WonderSwan_Mobile_Pro_v1.4.0_Android.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

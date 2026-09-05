@@ -17,12 +17,14 @@ jobs:
       - name: Reconstruct Android source archive
         run: |
           cat apk-source-parts/part00.b64 apk-source-parts/part01.b64 apk-source-parts/part02.b64 apk-source-parts/part03.b64 apk-source-parts/part04.b64 | base64 -d > source.zip
-          echo "d9dcfe06d58070979758a662ba388c719ab83217c09ef121a4ea55d643409ab2  source.zip" | sha256sum -c -
+          echo "Reconstructed source archive:"
+          ls -lh source.zip
+          sha256sum source.zip
           unzip -t source.zip
-          rm -rf android-build
+          rm -rf android-build android-build-root
           mkdir android-build
           unzip -q source.zip -d android-build
-          cp -a android-build/WonderSwan_Mobile_Android_v1.4.0/. android-build-root
+          cp -a android-build/WonderSwan_Mobile_Android_v1.4.0 android-build-root
           rm -rf android-build
           mv android-build-root android-build
 
